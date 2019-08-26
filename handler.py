@@ -6,6 +6,9 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 from itertools import product
 from itertools import combinations
+
+from skimage import measure, draw
+
 DIR = Path(__file__)
 
 
@@ -48,6 +51,7 @@ def findBoundry(image, xy, value, border=None, thresh=.1):
                     continue  # if already processed, skip
                 try:
                     p = pixel[s, t]
+                    
                 except (ValueError, IndexError):
                     pass
                 else:
@@ -78,7 +82,8 @@ def findBoundry(image, xy, value, border=None, thresh=.1):
                             
                             # NOTE 如果为True说明是边界线 如果不是则是空白
                             try:
-                                check = _color_diff(p, pixel[a,b]) <= thresh or _color_diff(200, pixel[a,b]) <= thresh
+                                check = _color_diff(p, pixel[a, b]) <= thresh or _color_diff(
+                                    200, pixel[a, b]) <= thresh or _color_diff(100, pixel[a, b]) <= thresh
                             except:
                                 # import traceback
                                 # traceback.print_exc()
@@ -94,9 +99,18 @@ def findBoundry(image, xy, value, border=None, thresh=.1):
                                 if b > t and not d_flag:
                                     d_flag = True
                         
+                        if s == 29 and t == 63:
+                            print ("====================")
+                            print (s, t)
+                            print (l_flag,r_flag,d_flag,u_flag)
                         # NOTE 找出不连续点的情况
                         if not ((l_flag and r_flag) or (d_flag and u_flag)):
                             pixel[s, t] = 200
+                            pass
+                        else:
+
+                            pixel[s, t] = 100
+
 
                         
         
