@@ -56,14 +56,13 @@ def findBoundry(image, xy, value, border=None, thresh=0):
         
         full_edge = edge  # discard pixels processed
         edge = new_edge
-        if index >= 3:
-            print (new_edge)
-            break
+        # if index >= 300:
+        #     break
 
 
 def main():
     # help(ImageDraw.floodfill)
-    path = DIR.parent / "test.png"
+    path = DIR.parent / "test2.png"
 
     img = Image.open(path)  # 打开图片
 
