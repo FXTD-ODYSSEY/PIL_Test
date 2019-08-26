@@ -1,15 +1,10 @@
-from pathlib import Path
 from PIL import Image
 from PIL import ImageFilter
-from PIL import ImageDraw
-from copy import deepcopy
-import matplotlib.pyplot as plt
+from pathlib import Path
 from itertools import product
-from itertools import combinations
 import random
-from skimage import measure, draw
+import os
 
-DIR = Path(__file__)
 
 
 def _color_diff(color1, color2):
@@ -25,8 +20,7 @@ def _listed(num,region=1,step=1):
     if region < 0 or step <0: raise RuntimeError()
     return range(num-region*step, num+1+region*step, step)
 
-def getBoundry(image,total=None,done=None, thresh=.1):
-    # image = deepcopy(image)
+def getBoundry(image,total=None,done=None,thresh=.1):
 
     if not total:
         width, height = image.size
@@ -35,13 +29,13 @@ def getBoundry(image,total=None,done=None, thresh=.1):
     pixel = image.load()
     
     # NOTE 说明目标点为边界线
-    handle = list(total - done)
+    handle = total - done
+    print ("handle",len(handle))
     if not handle:
         return set()
-    xy = handle[random.randint(0,len(handle)-1)]
-    x, y = xy
+    # NOTE 提取元素
+    for x, y in handle:break
     background = pixel[x, y]
-
     edge = {(x, y)}
 
     full_edge = set()
@@ -82,7 +76,10 @@ def getAllBoundry(image, xy=(0,0),total=None,done=None, thresh=.1):
     while total != done:
         data = getBoundry(image,total,done,thresh)
         result.append(data)
+        length = len(done)
         done.update(data)
+        if length == len(done):
+            break
     
     # ! 添加颜色看看是否全部运行了
     # pixel = image.load()
@@ -92,25 +89,27 @@ def getAllBoundry(image, xy=(0,0),total=None,done=None, thresh=.1):
     return result
 
 
-def findCenterPoint():
-    pass
+def findCenterPoint(data):
     # ! 找到中心点
-    # s_total = t_total= 0
-    # count = len(full_edge)
-    # for s,t in full_edge:
-    #     s_total += s
-    #     t_total += t
-    # s = round(s_total/count)
-    # t = round(t_total/count)
-    # print (s,t)
-    # pixel[s,t] = 100
-    
+    x_total = y_total= 0
+    count = len(data)
+    for x,y in data:
+        x_total += x
+        y_total += y
+    x = round(x_total/count)
+    y = round(y_total/count)
+    return x,y
+
+def fillColor(image,data):
+    pixel = image.load()
+    _,height = image.size
+    _,y = findCenterPoint(data)
+    color = round(y/height * 255)
+    for x,y in data:
+        pixel[x,y] = color
 
 
-def main():
-    # help(ImageDraw.floodfill)
-    path = DIR.parent / "test.png"
-    output = DIR.parent / "output.png"
+def imgHandler(path):
 
     img = Image.open(path)  # 打开图片
 
@@ -119,39 +118,72 @@ def main():
     # ! ------------------------------------------------
 
     # NOTE R 通道进行高斯模糊 半径 3 像素
-    blur_r = r.filter(ImageFilter.GaussianBlur(radius=3))
+    r = r.filter(ImageFilter.GaussianBlur(radius=3))
 
     # ! ------------------------------------------------
     # NOTE G 通道计算边缘检测结果 使用阈值控制边缘 大于 0.5 取 1 否则取 0
-    # mask = g.convert("L")
-    edge_g = g.filter(ImageFilter.FIND_EDGES)
-    width, height = edge_g.size
+    g = g.filter(ImageFilter.FIND_EDGES)
+    width, height = g.size
     thersold = .5
     # NOTE 处理像素点
     for h in range(height):
         for w in range(width):
-            if edge_g.getpixel((w, h))/255 < thersold:
-                edge_g.putpixel((w, h), 0)
+            if g.getpixel((w, h))/255 < thersold:
+                g.putpixel((w, h), 0)
             else:
-                edge_g.putpixel((w, h), 1)
+                g.putpixel((w, h), 255)
 
     # ! ------------------------------------------------
 
     center = (int(0.5 * width), int(0.5 * height))
-    # yellow = 255
-    # ImageDraw.floodfill(edge_g, xy=center, value=yellow)
     
-    getAllBoundry(edge_g, xy=center, thresh=0)
+    for data in getAllBoundry(g, xy=center, thresh=0):
+        fillColor(b,data)
 
     # ! ------------------------------------------------
-    # NOTE 显示图片
-    plt.figure('Img Library')  # 设置figure
-    plt.title('origin')
-    plt.imshow(edge_g)
-    plt.axis('off')
+    
+    pic = Image.merge('RGBA',(r,g,b,a))        #合并三通道
+    
+    # ! ------------------------------------------------
 
-    plt.show()
-    edge_g.save(output)
+    return r,g,b,pic
+
+def main():
+
+    # NOTE 获取当前脚本的路径
+    p = Path(__file__)
+    output_r   = p.parent / "F_r" 
+    output_g   = p.parent / "F_g" 
+    output_b   = p.parent / "F_b" 
+    output_pic = p.parent / "F_n" 
+    if not os.path.exists(output_r   ): os.mkdir(output_r   )
+    if not os.path.exists(output_g   ): os.mkdir(output_g   )
+    if not os.path.exists(output_b   ): os.mkdir(output_b   )
+    if not os.path.exists(output_pic ): os.mkdir(output_pic )
+
+    # NOTE 遍历当前脚本所处的目录
+    for folder in p.parent.iterdir():
+        # NOTE 如果为 F 目录
+        if folder.is_dir() and folder.stem == "F":
+            for image in folder.iterdir():
+                # NOTE 判断目录的后缀是否为 png 的图片
+                if image.is_file() and image.suffix == ".png":
+                    print (image.name)
+                    r,g,b,pic = imgHandler(image)
+                    r.save(output_r   / image.name)
+                    g.save(output_g   / image.name)
+                    b.save(output_b   / image.name)
+                    pic.save(output_pic / image.name)
+    
+    # ! 单帧测试
+    # name = "test (18).png"
+    # r,g,b,pic = imgHandler(p.parent / "F"/ name)
+    # r.save(output_r   / name)
+    # g.save(output_g   / name)
+    # b.save(output_b   / name)
+    # pic.save(output_pic / name)
+
+
 
 if __name__ == "__main__":
     main()
