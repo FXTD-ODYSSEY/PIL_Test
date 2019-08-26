@@ -40,10 +40,8 @@ def findBoundry(image, xy, value, border=None, thresh=.1):
     # to reduce memory consumption
     full_edge = set()
     
-    index = 0
     bound = set()
     while edge:
-        index += 1
         new_edge = set()
         for (x, y) in edge:  # 4 adjacent method
             for (s, t) in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
@@ -51,7 +49,6 @@ def findBoundry(image, xy, value, border=None, thresh=.1):
                     continue  # if already processed, skip
                 try:
                     p = pixel[s, t]
-                    
                 except (ValueError, IndexError):
                     pass
                 else:
@@ -69,50 +66,39 @@ def findBoundry(image, xy, value, border=None, thresh=.1):
                         if (s,t) in bound:
                             continue
                         bound.add((s,t))
-                
-                        # Note 颜色不相符说明当前方块为边界方块
-                        p = pixel[s, t]
-
-                        l_flag = False
-                        r_flag = False
-                        d_flag = False
-                        u_flag = False
-                        for a, b in product(_listed(s), _listed(t)):
-                            # i
-                            
-                            # NOTE 如果为True说明是边界线 如果不是则是空白
-                            try:
-                                check = _color_diff(p, pixel[a, b]) <= thresh or _color_diff(
-                                    200, pixel[a, b]) <= thresh or _color_diff(100, pixel[a, b]) <= thresh
-                            except:
-                                # import traceback
-                                # traceback.print_exc()
-                                # pixel[s, t] = 200
-                                continue
-                            if check:
-                                if a < s and not l_flag:
-                                    l_flag = True
-                                if a > s and not r_flag:
-                                    r_flag = True
-                                if b < t and not u_flag:
-                                    u_flag = True
-                                if b > t and not d_flag:
-                                    d_flag = True
                         
-                        if s == 29 and t == 63:
-                            print ("====================")
-                            print (s, t)
-                            print (l_flag,r_flag,d_flag,u_flag)
-                        # NOTE 找出不连续点的情况
-                        if not ((l_flag and r_flag) or (d_flag and u_flag)):
-                            pixel[s, t] = 200
-                            pass
-                        else:
-
-                            pixel[s, t] = 100
-
-
-                        
+                        # ! 标记边界线并且将不连续的点特殊标记出来
+                        # # Note 颜色不相符说明当前方块为边界方块
+                        # p = pixel[s, t]
+                        # # Note 判断上下和左右是否有边界，
+                        # l_flag = False
+                        # r_flag = False
+                        # d_flag = False
+                        # u_flag = False
+                        # for a, b in product(_listed(s), _listed(t)):
+                        #     # NOTE 如果为True说明是边界线 如果不是则是空白
+                        #     try:
+                        #         check = _color_diff(p, pixel[a, b]) <= thresh or _color_diff(
+                        #             200, pixel[a, b]) <= thresh or _color_diff(100, pixel[a, b]) <= thresh
+                        #     except:
+                        #         # import traceback
+                        #         # traceback.print_exc()
+                        #         # pixel[s, t] = 200
+                        #         continue
+                        #     if check:
+                        #         if a < s and not l_flag:
+                        #             l_flag = True
+                        #         if a > s and not r_flag:
+                        #             r_flag = True
+                        #         if b < t and not u_flag:
+                        #             u_flag = True
+                        #         if b > t and not d_flag:
+                        #             d_flag = True
+                        # # NOTE 找出端点
+                        # if not ((l_flag and r_flag) or (d_flag and u_flag)):
+                        #     pixel[s, t] = 200
+                        # else:
+                        #     pixel[s, t] = 100
         
         full_edge = edge  # discard pixels processed
         edge = new_edge
