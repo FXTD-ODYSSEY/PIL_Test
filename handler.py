@@ -24,7 +24,7 @@ def findBoundry(image, xy, value, border=None, thresh=0):
         background = pixel[x, y]
         if _color_diff(value, background) <= thresh:
             return  # seed point already has fill color
-        # pixel[x, y] = value
+        pixel[x, y] = value
     except (ValueError, IndexError):
         return  # seed point outside image
     edge = {(x, y)}
@@ -56,8 +56,8 @@ def findBoundry(image, xy, value, border=None, thresh=0):
         
         full_edge = edge  # discard pixels processed
         edge = new_edge
-        print (new_edge)
-        if index >= 10:
+        if index >= 3:
+            print (new_edge)
             break
 
 
@@ -79,7 +79,7 @@ def main():
     # mask = g.convert("L")
     edge_g = g.filter(ImageFilter.FIND_EDGES)
     width, height = edge_g.size
-    thersold = .5
+    thersold = .3
     # NOTE 处理像素点
     for h in range(height):
         for w in range(width):
