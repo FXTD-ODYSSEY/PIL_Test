@@ -4,7 +4,8 @@ from PIL import ImageFilter
 from PIL import ImageDraw
 from copy import deepcopy
 import matplotlib.pyplot as plt
-
+from itertools import product
+from itertools import combinations
 DIR = Path(__file__)
 
 
@@ -17,7 +18,11 @@ def _color_diff(color1, color2):
     else:
         return abs(color1 - color2)
 
-def findBoundry(image, xy, value, border=None, thresh=0):
+def _listed(num,region=1,step=1):
+    if region < 0 or step <0: raise RuntimeError()
+    return range(num-region*step, num+1+region*step, step)
+
+def findBoundry(image, xy, value, border=None, thresh=.1):
     pixel = image.load()
     x, y = xy
     try:
@@ -33,6 +38,7 @@ def findBoundry(image, xy, value, border=None, thresh=0):
     full_edge = set()
     
     index = 0
+    bound = set()
     while edge:
         index += 1
         new_edge = set()
@@ -50,9 +56,49 @@ def findBoundry(image, xy, value, border=None, thresh=0):
                         fill = _color_diff(p, background) <= thresh
                     else:
                         fill = p != value and p != border
+
                     if fill:
+                        # Note 颜色相符符合填充条件
                         pixel[s, t] = value
                         new_edge.add((s, t))
+                    else:
+                        if (s,t) in bound:
+                            continue
+                        bound.add((s,t))
+                
+                        # Note 颜色不相符说明当前方块为边界方块
+                        p = pixel[s, t]
+
+                        l_flag = False
+                        r_flag = False
+                        d_flag = False
+                        u_flag = False
+                        for a, b in product(_listed(s), _listed(t)):
+                            # i
+                            
+                            # NOTE 如果为True说明是边界线 如果不是则是空白
+                            try:
+                                check = _color_diff(p, pixel[a,b]) <= thresh or _color_diff(200, pixel[a,b]) <= thresh
+                            except:
+                                # import traceback
+                                # traceback.print_exc()
+                                # pixel[s, t] = 200
+                                continue
+                            if check:
+                                if a < s and not l_flag:
+                                    l_flag = True
+                                if a > s and not r_flag:
+                                    r_flag = True
+                                if b < t and not u_flag:
+                                    u_flag = True
+                                if b > t and not d_flag:
+                                    d_flag = True
+                        
+                        # NOTE 找出不连续点的情况
+                        if not ((l_flag and r_flag) or (d_flag and u_flag)):
+                            pixel[s, t] = 200
+
+                        
         
         full_edge = edge  # discard pixels processed
         edge = new_edge
@@ -62,7 +108,8 @@ def findBoundry(image, xy, value, border=None, thresh=0):
 
 def main():
     # help(ImageDraw.floodfill)
-    path = DIR.parent / "test2.png"
+    path = DIR.parent / "test.png"
+    output = DIR.parent / "output.png"
 
     img = Image.open(path)  # 打开图片
 
@@ -78,7 +125,7 @@ def main():
     # mask = g.convert("L")
     edge_g = g.filter(ImageFilter.FIND_EDGES)
     width, height = edge_g.size
-    thersold = .3
+    thersold = .5
     # NOTE 处理像素点
     for h in range(height):
         for w in range(width):
@@ -105,7 +152,7 @@ def main():
     plt.axis('off')
 
     plt.show()
-
+    _edge_g.save(output)
 
 if __name__ == "__main__":
     main()
