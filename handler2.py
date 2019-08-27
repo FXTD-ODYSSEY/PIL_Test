@@ -135,9 +135,7 @@ def imgHandler(path):
 
     # ! ------------------------------------------------
 
-    center = (int(0.5 * width), int(0.5 * height))
-    
-    for data in getAllBoundry(g, xy=center, thresh=0):
+    for data in getAllBoundry(g, thresh=0.1):
         fillColor(b,data)
 
     # ! ------------------------------------------------
@@ -170,9 +168,9 @@ def main():
                 if image.is_file() and image.suffix == ".png":
                     print (image.name)
                     r,g,b,pic = imgHandler(image)
-                    r.save(output_r   / image.name)
-                    g.save(output_g   / image.name)
-                    b.save(output_b   / image.name)
+                    r.save(output_r     / image.name)
+                    g.save(output_g     / image.name)
+                    b.save(output_b     / image.name)
                     pic.save(output_pic / image.name)
     
     # ! 单帧测试
