@@ -38,7 +38,7 @@ def getBoundry(image,total=None,done=None,thresh=.1):
     background = pixel[x, y]
     edge = {(x, y)}
 
-    full_edge = set()
+    full_edge = {(x, y)}
     while edge:
         new_edge = set()
         for (x, y) in edge:  # 4 adjacent method
@@ -76,11 +76,8 @@ def getAllBoundry(image, xy=(0,0),total=None,done=None, thresh=.1):
     while total != done:
         data = getBoundry(image,total,done,thresh)
         result.append(data)
-        length = len(done)
         done.update(data)
-        if length == len(done):
-            break
-    
+        
     # ! 添加颜色看看是否全部运行了
     # pixel = image.load()
     # for s,t in done:
