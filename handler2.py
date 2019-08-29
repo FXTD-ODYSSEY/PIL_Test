@@ -8,20 +8,64 @@ import os
 
 
 def _color_diff(color1, color2):
+    """_color_diff 判断颜色差异
+    
+    根据欧拉距离判断颜色差异
+
+    Arguments:
+        color1 {tuple} -- 颜色值
+        color2 {tuple} -- 颜色值
+    
+    Returns:
+        float -- 颜色相似程度
     """
-    Uses 1-norm distance to calculate difference between two values.
-    """
+    
     if isinstance(color2, tuple):
         return sum([abs(color1[i] - color2[i]) for i in range(0, len(color2))])
     else:
         return abs(color1 - color2)
 
 def _listed(num,region=1,step=1):
+    """_listed 数字展开成数组
+
+    _listed(3,2)    返回 [1,2,3,4,5]
+    _listed(10,3,2) 返回 [4,6,8,10,12,14,16]
+
+    
+    Arguments:
+        num {int} -- 延展的数字
+    
+    Keyword Arguments:
+        region {int} -- 延展的数字的个数 (default: {1})
+        step {int} -- 延展的步长 (default: {1})
+    
+    Raises:
+        RuntimeError: 如果 region 或 step 小于零则报错
+    
+    Returns:
+        list -- 返回延展数组
+    """
     if region < 0 or step <0: raise RuntimeError()
     return range(num-region*step, num+1+region*step, step)
 
 def getBoundry(image,total=None,done=None,thresh=.1):
+    """getBoundry 寻找边界
+    
+    这里基于油漆桶的实现方法查找到物体边界
+    油漆桶的原理是对任意一个像素点不断扩散范围，
+    直到找到像素差异很大的颜值，这个颜色值会标记为边界
 
+    Arguments:
+        image {Image} -- PIL 获取的图片对象
+    
+    Keyword Arguments:
+        total {list} -- 总像素 (default: {None})
+        done {list} -- 完成的像素 (default: {None})
+        thresh {float} -- 相似阈值 (default: {.1})
+    
+    Returns:
+        list -- 完成的像素
+    """
     if not total:
         width, height = image.size
         total = set([(w,h) for w,h in product(range(width),range(height))])
@@ -38,7 +82,7 @@ def getBoundry(image,total=None,done=None,thresh=.1):
     background = pixel[x, y]
     edge = {(x, y)}
 
-    full_edge = set()
+    full_edge = {(x, y)}
     while edge:
         new_edge = set()
         for (x, y) in edge:  # 4 adjacent method
@@ -65,8 +109,20 @@ def getBoundry(image,total=None,done=None,thresh=.1):
     #     pixel[s, t] = 255
     return full_edge
 
-def getAllBoundry(image, xy=(0,0),total=None,done=None, thresh=.1):
-
+def getAllBoundry(image,total=None,done=None, thresh=.1):
+    """getAllBoundry 通过while循环查询图片所有的 Boundry 边界
+    
+    Arguments:
+        image {Image} -- PIL 获取的图片对象
+    
+    Keyword Arguments:
+        total {list} -- 总像素 (default: {None})
+        done {list} -- 完成的像素 (default: {None})
+        thresh {float} -- 相似阈值 (default: {.1})
+    
+    Returns:
+        list -- 每一个区域的像素集合
+    """
     if not total:
         width, height = image.size
         total = set([(w,h) for w,h in product(range(width),range(height))])
@@ -76,10 +132,8 @@ def getAllBoundry(image, xy=(0,0),total=None,done=None, thresh=.1):
     while total != done:
         data = getBoundry(image,total,done,thresh)
         result.append(data)
-        length = len(done)
         done.update(data)
-        if length == len(done):
-            break
+        
     
     # ! 添加颜色看看是否全部运行了
     # pixel = image.load()
@@ -90,6 +144,14 @@ def getAllBoundry(image, xy=(0,0),total=None,done=None, thresh=.1):
 
 
 def findCenterPoint(data):
+    """findCenterPoint 更具给定的像素数据寻找中心点
+    
+    Arguments:
+        data {set} -- 像素数据
+    
+    Returns:
+        tuple -- 中心点 x,y
+    """
     # ! 找到中心点
     x_total = y_total= 0
     count = len(data)
@@ -101,6 +163,14 @@ def findCenterPoint(data):
     return x,y
 
 def fillColor(image,data):
+    """fillColor 颜色填充
+    
+    根据中心点的像素值，对区域范围进行颜色填充
+    
+    Arguments:
+        image {Image} -- PIL 获取的图片对象
+        data {set} -- 像素数据
+    """
     pixel = image.load()
     _,height = image.size
     _,y = findCenterPoint(data)
@@ -122,7 +192,7 @@ def imgHandler(path):
 
     # ! ------------------------------------------------
     # NOTE G 通道计算边缘检测结果 使用阈值控制边缘 大于 0.5 取 1 否则取 0
-    g = g.filter(ImageFilter.FIND_EDGES)
+    g = g.filter(ImageFilter.EDGE_ENHANCE).filter(ImageFilter.FIND_EDGES)
     width, height = g.size
     thersold = .5
     # NOTE 处理像素点
@@ -135,9 +205,9 @@ def imgHandler(path):
 
     # ! ------------------------------------------------
 
-    center = (int(0.5 * width), int(0.5 * height))
+    # center = (int(0.5 * width), int(0.5 * height))
     
-    for data in getAllBoundry(g, xy=center, thresh=0):
+    for data in getAllBoundry(g, thresh=0):
         fillColor(b,data)
 
     # ! ------------------------------------------------
